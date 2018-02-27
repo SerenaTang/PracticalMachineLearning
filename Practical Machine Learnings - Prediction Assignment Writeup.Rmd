@@ -75,12 +75,14 @@ dim(training); dim(testing)
 ### iii) Exploratory Analysis
 We look at the correlations among the variables in the correlation matrix below. Dark reds show storng positive correlation, and dark blues show storng negative correlation. We can see that for most of the variables, correlation is low, and given the already reduced number of variables, we leave the training set as it is.
 
-```{r message=FALSE}
-library(ggplot2)
-library(reshape2)
-corrDt <- melt(cor(training[-53]))
-ggplot(data = corrDt, aes(x=Var1, y=Var2, fill=value)) + 
-        geom_tile()+scale_fill_gradient2(low = "blue", mid="white", high = "red")
+```{r message=FALSE, fig.width=10, fig.height=8}
+# Note: Wanted to show this, but it made HTML too big to display, so have disabled it.
+
+#library(ggplot2)
+#library(reshape2)
+#corrDt <- melt(cor(training[-53]))
+#ggplot(data = corrDt, aes(x=Var1, y=Var2, fill=value)) + 
+#        geom_tile()+scale_fill_gradient2(low = "blue", mid="white", high = "red")
 
 ```
 
