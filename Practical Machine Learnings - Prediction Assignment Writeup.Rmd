@@ -2,7 +2,9 @@
 title: "Practical Machine Learning - Prediction Assignment Writeup"
 author: "Serena Tang"
 date: "24/02/2018"
-output: md_document
+output: 
+ html_document:
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -78,11 +80,11 @@ We look at the correlations among the variables in the correlation matrix below.
 ```{r message=FALSE, fig.width=10, fig.height=8}
 # Note: Wanted to show this, but it made HTML too big to display, so have disabled it.
 
-#library(ggplot2)
-#library(reshape2)
-#corrDt <- melt(cor(training[-53]))
-#ggplot(data = corrDt, aes(x=Var1, y=Var2, fill=value)) + 
-#        geom_tile()+scale_fill_gradient2(low = "blue", mid="white", high = "red")
+library(ggplot2)
+library(reshape2)
+corrDt <- melt(cor(training[-53]))
+ggplot(data = corrDt, aes(x=Var1, y=Var2, fill=value)) + 
+        geom_tile()+scale_fill_gradient2(low = "blue", mid="white", high = "red")
 
 ```
 
