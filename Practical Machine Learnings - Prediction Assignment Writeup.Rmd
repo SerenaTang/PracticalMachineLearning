@@ -9,22 +9,125 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction 
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict the manner in which they did the exercise -- the "classe" variable in the training set. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## Dataset Description and Exploratory Analysis
+### i) About the Dataset 
+The data for this project come from this source: [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har). The dataset we focus on is the Weight Lifting Exercises Dataset. Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E), with Class A corresponding to the specified execution of the exercise, while the other 4 classes corresponding to common mistakes.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The training data for this project are available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
 
-```{r cars}
-summary(cars)
+The test data are available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)
+
+### ii) Loading and cleaning the data
+We load the relevant csv files and look at short summary.
+```{r message=FALSE}
+# Load data
+trainset <- read.csv("pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+testset  <- read.csv("pml-testing.csv", na.strings = c("NA", "#DIV/0!", ""))
+
+# Quick look at data
+str(trainset, list.len=10)
+```
+We clean the dataset in three ways: 1) remove the first 7 columns given they contain information (time, user, etc) not relevant to our exercise; 2) remove the variables with near zero variance; 3) remove the columns in which are mostly NA.
+
+```{r message=FALSE}
+library(caret)
+dim(trainset); dim(testset)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r message=FALSE}
+# 1) Removing first 7 columns
+trainset <- trainset[,-(1:7)]
+testset <- testset[,-(1:7)]
+dim(trainset); dim(testset)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r  message=FALSE}
+# 2)  Removing variable with near zero varability
+nzv <- nearZeroVar(trainset)
+trainset <- trainset[,-nzv]
+testset <- testset [,-nzv]
+dim(trainset); dim(testset)
+
+```
+
+```{r message=FALSE}
+# 3)  Removing columns that are mostly NA
+remCol <- sapply(trainset, function(x) mean(is.na(x))) < 0.9
+trainset <- trainset[, remCol==TRUE]
+testset <- testset[, remCol==TRUE]
+dim(trainset); dim(testset)
+
+```
+After data cleaning, we end up with 53 covariates and 19622 samples.
+
+### iii) Splitting data for cross validation
+For *cross validation* we split the training set into two -- randomly sample trainset such that 60% is set for training ('training') and 40% is used for testing ('testing' -- not to be confused with 'testset' for Course Project Quiz Portion).
+```{r message=FALSE}
+inTrain=createDataPartition(trainset$classe, p=0.6, list=FALSE)
+training <-trainset[inTrain,]
+testing <- trainset[-inTrain,]
+dim(training); dim(testing)
+```
+
+### iii) Exploratory Analysis
+We look at the correlations among the variables in the correlation matrix below. Dark reds show storng positive correlation, and dark blues show storng negative correlation. We can see that for most of the variables, correlation is low, and given the already reduced number of variables, we leave the training set as it is.
+
+```{r message=FALSE}
+library(ggplot2)
+library(reshape2)
+corrDt <- melt(cor(training[-53]))
+ggplot(data = corrDt, aes(x=Var1, y=Var2, fill=value)) + 
+        geom_tile()+scale_fill_gradient2(low = "blue", mid="white", high = "red")
+
+```
+
+## Building the prediction model
+### i) Predicting with Trees
+Our first model is using trees, where we divide data on splits/nodes until the groups are sufficiently small.
+```{r message=FALSE}
+library(rpart)
+library(rpart.plot)
+set.seed(123)
+modfit.tree <- rpart(classe ~ ., data=training, method="class")
+rpart.plot(modfit.tree, tweak=1.5)
+```
+
+We now check the performance of this model by using testing for cross validation:
+```{r message=FALSE}
+set.seed(123)
+pred.tree <- predict(modfit.tree, newdata=testing, type="class")
+confusionMatrix(pred.tree, testing$classe)
+```
+
+### ii) Predicting with Random Forests
+Our next model uses random forest, which 'grows' a large number of trees (from bootstrapping the variables), and an average is taken across the trees. Random forests method tend to be highly accurate, and with low out of sample error.
+```{r message=FALSE, warning=FALSE}
+library(randomForest)
+set.seed(123)
+modfit.RF <- randomForest(classe ~ ., data=training, ntree=200)
+modfit.RF
+```
+
+We now check the performance of this model by using testing for cross validation:
+```{r message=FALSE, warning=FALSE}
+set.seed(123)
+pred.RF <- predict(modfit.RF, newdata=testing)
+confusionMatrix(pred.RF, testing$classe)
+```
+As expected, random forest model is highly accurate, and performs better than using regression trees.
+
+## Conclusions
+Given the random forest model's better accuracy when used on 'tesing' compared to the prediction model with trees, we'll use modfit.RF for the Prediction Quiz (on 'testset'.)
+
+## Course Project Prediction Quiz Portion
+We use the random forest model to predict 'classe' for the 20 observations in 'testset', to predict the manner in which participants did the exercise. 
+
+```{r message=FALSE, warning=FALSE}
+# For submission:
+pred.quiz <- predict(modfit.RF, newdata=testset)
+pred.quiz
+```
+
