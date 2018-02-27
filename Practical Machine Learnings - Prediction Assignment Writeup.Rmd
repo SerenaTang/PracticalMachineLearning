@@ -2,9 +2,7 @@
 title: "Practical Machine Learning - Prediction Assignment Writeup"
 author: "Serena Tang"
 date: "24/02/2018"
-output: 
-md_document:
-        variant: markdown_github
+output: md_document
 ---
 
 ```{r setup, include=FALSE}
